@@ -65,3 +65,28 @@ CreateDir "src\netstandard";
 CreateDir (join-path "src\netstandard" $projectDirectory);
 CreateDir "src\shared";
 CreateDir (join-path "src\shared" $projectDirectory);
+
+# -----------------------------------------------------------------------------
+# create some files
+# -----------------------------------------------------------------------------
+# create a nuget.spec
+$buildDir = "build";
+cd (join-path $rootDir $projectDirectory);
+cd build
+nuget spec $projectDirectory
+
+# create the buildscript
+$text = "`$solutionName = `"$projectDirectory`";";
+$text | Set-Content "build.ps1"
+$text = "`$rootdir = Join-Path `$PSScriptRoot "".."";";
+$text | Add-Content "build.ps1"
+$text = "`$rootdir = Resolve-Path `$rootdir;"
+$text | Add-Content "build.ps1"
+$text = "..\..\DerECoach.Scripts\build\build.ps1"
+$text | Add-Content "build.ps1"
+
+# create a git repository
+cd (join-path $rootDir $projectDirectory);
+git init
+cd $PSScriptRoot
+
