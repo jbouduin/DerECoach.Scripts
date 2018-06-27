@@ -75,7 +75,8 @@ cd (join-path $rootDir $projectDirectory);
 cd build
 nuget spec $projectDirectory
 
-# create the buildscript
+# copy a default .gitignore file vor VS
+# create the buildscript TODO use stream
 $text = "`$solutionName = `"$projectDirectory`";";
 $text | Set-Content "build.ps1"
 $text = "`$rootdir = Join-Path `$PSScriptRoot "".."";";
