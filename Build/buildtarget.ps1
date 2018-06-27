@@ -1,11 +1,12 @@
-# -----------------------------------------------------------------------------
+# =============================================================================
 # function targetFramework2Version: converts the target framework to the 
 #          the target framework version as to be set in the project file
 # Param string $framework: the Framework
-# -----------------------------------------------------------------------------
+# =============================================================================
 function targetFramework2Version
 {
     Param ([string] $framework)
+    
     switch ($framework)
     {
         #########################################################
@@ -32,14 +33,99 @@ function targetFramework2Version
     return $result;
 }
 
-# -----------------------------------------------------------------------------
+# =============================================================================
+# function getMSBuildCompilerConstants: returns the compile constants
+# Param string $framework: the target Framework
+# =============================================================================
+function getMSBuildCompilerConstants
+{
+    Param ([string] $framework)
+    
+    switch ($framework)
+    {
+        #--------------------------------------------------------
+        # .NET Framework
+        #--------------------------------------------------------
+        "net11" { $result = "NET1_1" }
+        "net20" { $result = "NET2_0" } 
+        "net35" { $result = "NET3_5" } 
+        "net40" { $result = "NET4_0" }
+        "net403" { $result = "NET4_0_3" }
+        "net45" { $result = "NET4_5" }
+        "net451" { $result = "NET4_5_1" }
+        "net452" { $result = "NET4_5_2" }
+        "net46" { $result = "NET4_6" }
+        "net461" { $result = "NET4_6_1" }
+        "net462" { $result = "NET4_6_2" }
+ 
+        #--------------------------------------------------------
+        # .NET-Standard
+        #--------------------------------------------------------
+        "netstandard1.0" { $result = "NETSTANDARD1_0" }
+        "netstandard1.1" { $result = "NETSTANDARD1_1" }        
+        "netstandard2.0" { $result = "NETSTANDARD2_0" }
+        
+        #--------------------------------------------------------
+        # .NET Core-App
+        #--------------------------------------------------------
+        "netcoreapp1.0" { $result = "NETCOREAPP1_0" }
+        "netcoreapp1.1" { $result = "NETCOREAPP1_1" }
+        "netcoreapp2.0" { $result = "NETCOREAPP2_0" }
+        
+        default { $result = "" }
+    }
+    
+    if ($result -eq "")
+    {
+       return "RELEASE" ;
+    }
+    
+    return "RELEASE;" + $result;
+}
+
+# =============================================================================
+# function writeRspFile: create the .rsp file
+# param string $fileName: the full path to the .rsp file
+#       string $constants: the compile constants
+# =============================================================================
+function writeRspFile
+{
+    Param ([string] $fileName, [string] $constants)
+    
+    try
+    {
+        $stream = [System.IO.StreamWriter]::new( $fileName )
+        $stream.WriteLine("/m");
+        $stream.WriteLine("/nologo");
+        $stream.WriteLine("/p:DebugSymbols=false");
+        $stream.WriteLine("/p:DebugType=none");
+        $stream.WriteLine("/p:DefineDebug=false");
+        $stream.WriteLine("/p:DefineTrace=false");
+        $stream.WriteLine("/p:DefineConstants=""" + $constants + """");
+        $stream.WriteLine("/p:configuration=""Release"""); 
+        $stream.WriteLine("/p:platform=""Any CPU"""); 
+        $stream.WriteLine("/p:outdir=""$targetDir""") 
+        $stream.WriteLine("/t:Rebuild"); 
+        $stream.WriteLine("/verbosity:quiet"); 
+        $stream.WriteLine("/clp:ErrorsOnly"); 
+        $stream.WriteLine("/flp:LogFile=""$buildLog""");
+        
+    }
+    finally
+    {
+        $stream.close()
+    }
+}
+
+# =============================================================================
 # function solution2SolutionFile: converts the solution to the 
 #          full path of the solutionfile
 # Param string $framework: the Framework
-# -----------------------------------------------------------------------------
+# =============================================================================
 function solution2SolutionFile
 {
     Param ([string] $framework, [string] $solution)
+    
     if ($framework.StartsWith("netcoreapp"))  { $result = [io.path]::combine($rootDir, "src\netcoreapp", $solution + ".sln") }
     elseif ($framework.StartsWith("netstandard"))  { $result = [io.path]::combine($rootDir, "src\netstandard", $solution + ".sln")}
     else { $result = [io.path]::combine($rootDir, "src\net", $solution + ".sln")}
@@ -47,12 +133,15 @@ function solution2SolutionFile
     return $result;
 }
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # function setTargetFrameworkForProjects
-# -----------------------------------------------------------------------------
+# param string $solution
+#       string $framework
+# =============================================================================
 function setTargetFrameworkForProjects
 {
     Param ([string] $solution, [string] $framework)
+    
     foreach($line in [System.IO.File]::ReadLines($solution))
     {
         if (![string]::IsNullOrWhitespace($line) -and $line.StartsWith("Project("))
@@ -77,9 +166,9 @@ function setTargetFrameworkForProjects
     }
 }
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # function setTargetFrameworkForNetProject
-# -----------------------------------------------------------------------------
+# =============================================================================
 function setTargetFrameworkForNetProject
 {
     Param ([string] $fullProjectFileName, [string] $framework)
@@ -102,12 +191,13 @@ function setTargetFrameworkForNetProject
     
 }
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # function setTargetFrameworkForNetProject
-# -----------------------------------------------------------------------------
+# =============================================================================
 function setTargetFrameworkForOtherProject
 {
     Param ([string] $fullProjectFileName, [string] $framework)
+    
     Write-Host "setting" $framework "in" $fullProjectFileName;
     $results = 0
     $ns = @{msb = ''}
@@ -125,6 +215,10 @@ function setTargetFrameworkForOtherProject
     }
 }
 
+# =============================================================================
+# MAIN BLOCK
+# =============================================================================
+
 # -----------------------------------------------------------------------------
 # set some variables needed later
 # -----------------------------------------------------------------------------
@@ -132,11 +226,10 @@ $targetDir = Join-Path $libDir $targetFramework;
 $targetFrameworkVersion = targetFramework2Version $targetFramework;
 $solutionFileName = solution2SolutionFile $targetFramework $solutionName;
 $buildLog = $trg = [io.path]::combine($logDir, "build." + $targetFramework + ".log");
+$rspFileName = [io.path]::combine( $rootDir, "src", "Directory.Build.rsp");
 
 Write-Host "Building" $solutionFileName 
 Write-Host "for Target" $targetFramework "- FrameworkVersion" $targetFrameworkVersion
-Write-Host $buildLog;
-
 
 # -----------------------------------------------------------------------------
 # create the lib directory or make it empty if it already exists
@@ -144,22 +237,23 @@ Write-Host $buildLog;
 if(!(Test-Path -Path $targetDir ))
 {
     Write-Host "Creating" $targetDir;
-    New-Item -ItemType directory -Path $targetDir;
+    New-Item -ItemType directory -Path $targetDir | Out-Null;
 }
 else
 {
     Write-Host "Clearing" $targetDir;
-    Get-ChildItem -Path $targetDir -Include * | remove-Item -recurse 
+    Get-ChildItem -Path $targetDir -Include * | remove-Item -recurse | Out-Null
 }
 
 # -----------------------------------------------------------------------------
 # build for the target framework
 # -----------------------------------------------------------------------------
 setTargetFrameworkForProjects $solutionFileName $targetFrameworkVersion
+$compileConstants = getMSBuildCompilerConstants $targetFramework
+writeRspFile $rspFileName $compileConstants
 
 & nuget restore $solutionFileName 
-# & dotnet msbuild $solutionFileName /m /p:configuration="Release" /p:outdir="$targetDir" /p:platform="Any CPU" /toolsversion:4.0 /t:Rebuild /verbosity:quiet  /clp:ErrorsOnly /flp:LogFile="$buildLog"
-& dotnet msbuild $solutionFileName /m /p:configuration="Release" /p:outdir="$targetDir" /p:platform="Any CPU" /t:Rebuild /verbosity:quiet  /clp:ErrorsOnly /flp:LogFile="$buildLog"
+& dotnet msbuild $solutionFileName 
 
 if ($lastExitCode -ne 0)
 {

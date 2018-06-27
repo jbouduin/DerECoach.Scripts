@@ -7,7 +7,6 @@ if (!$rootDir)
 # -----------------------------------------------------------------------------
 # set some variables needed later
 # -----------------------------------------------------------------------------
-# $solutionName = "DerECoach.Common.BaseTypes";
 $outputDir = Join-Path $rootDir "Output\"
 $outputDir = Resolve-Path($outputDir);
 $logdir = Join-Path $outputDir "logs";
@@ -17,7 +16,7 @@ $nugetDir = Join-Path $outputDir "nuget";
 
 
 $targets = Join-Path $PSScriptRoot "targets.txt";
-$nuspec = Join-Path [io.path]::combine($rootdir, "build", ($solutionName + ".nuspec"));
+$nuspec = [io.path]::combine($rootdir, "build", ($solutionName + ".nuspec"));
 $readme = Join-Path $buildDir "readme.txt";
 $nupkg = Join-Path $nugetDir ($solutionName + ".nupkg")
 
@@ -38,41 +37,41 @@ Write-Host "nupkg    " $nupkg
 if(!(Test-Path -Path $logDir ))
 {
     Write-Host "Creating" $logDir;
-    New-Item -ItemType directory -Path $logDir;
+    New-Item -ItemType directory -Path $logDir | Out-Null;
 }
 else
 {
     Write-Host "Clearing" $logDir;
-    Get-ChildItem -Path $logDir -Include * | remove-Item -recurse 
+    Get-ChildItem -Path $logDir -Include * | remove-Item -recurse | Out-Null
 }
 
 if(!(Test-Path -Path $buildDir ))
 {
     Write-Host "Creating" $buildDir;
-    New-Item -ItemType directory -Path $buildDir;
+    New-Item -ItemType directory -Path $buildDir | Out-Null;
 }
 
 if(!(Test-Path -Path $libDir ))
 {
     Write-Host "Creating" $libDir;
-    New-Item -ItemType directory -Path $libDir;
+    New-Item -ItemType directory -Path $libDir | Out-Null;
 }
 else
 {
     Write-Host "Clearing" $libDir;
-    Get-ChildItem -Path $libDir -Include * | remove-Item -recurse 
+    Get-ChildItem -Path $libDir -Include * | remove-Item -recurse | Out-Null
 }
 
 if(!(Test-Path -Path $nugetDir ))
 {
     Write-Host "Creating" $nugetDir;
-    New-Item -ItemType directory -Path $nugetDir;
+    New-Item -ItemType directory -Path $nugetDir | Out-Null;
 }
 
 if (!(Test-Path -Path $readme))
 {
     Write-Host "Creating" $readme;
-    New-Item -ItemType file -Path $readme;
+    New-Item -ItemType file -Path $readme | Out-Null;
 }
 
 foreach($line in [System.IO.File]::ReadLines($targets))
