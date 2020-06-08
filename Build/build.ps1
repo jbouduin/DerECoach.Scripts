@@ -91,4 +91,4 @@ foreach($line in [System.IO.File]::ReadLines($targets))
 if ($lastExitCode -ne 0) { exit $lastExitCode; }
 
 # TODO put the version number in the package name
-# & nuget push $nupkg QJAzJZLtdGkRZTraMDnp -src http://develop.der-e-coach.de/nuget/nuget
+# & nuget push $nupkg xxx -src http://xxx.com/nuget/nuget
